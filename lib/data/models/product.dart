@@ -2,8 +2,10 @@ class Product {
   final int id;
   final String name;
   final String description;
-  final double price; // Ensure this is a double
+  final double price;
   final String imageUrl;
+  final String? category; // Make nullable
+  final int? categoryId;  // Make nullable and ensure it's an int
   final int stock;
 
   Product({
@@ -12,6 +14,8 @@ class Product {
     required this.description,
     required this.price,
     required this.imageUrl,
+    this.category,
+    this.categoryId,
     required this.stock,
   });
 
@@ -22,6 +26,8 @@ class Product {
       description: json['description'] ?? '',
       price: double.tryParse(json['price']?.toString() ?? '0') ?? 0.0,
       imageUrl: json['image_url'] ?? '',
+      category: json['category_name'],  // This can be null
+      categoryId: json['category_id'],  // This can be null
       stock: json['stock'] ?? 0,
     );
   }

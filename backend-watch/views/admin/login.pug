@@ -1,0 +1,15 @@
+extends layout
+
+block content
+  .container.login-container
+    h2.text-center.mb-4 Admin Login
+    if error
+      .alert.alert-danger= error
+    form(action="/admin/login", method="POST")
+      .mb-3
+        label.form-label(for="email") Email
+        input.form-control#email(type="email", name="email", required)
+      .mb-3
+        label.form-label(for="password") Password
+        input.form-control#password(type="password", name="password", required)
+      button.btn.btn-primary.w-100(type="submit") Login

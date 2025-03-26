@@ -8,6 +8,7 @@ import 'package:watch_store/presentation/pages/profile_page.dart';
 import 'package:watch_store/presentation/pages/registration_page.dart';
 import 'package:watch_store/presentation/pages/order_history_page.dart';
 
+
 import 'presentation/pages/product_detail_page.dart';
 
 class AppRoutes {

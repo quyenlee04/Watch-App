@@ -32,10 +32,25 @@ class _CartPageState extends State<CartPage> {
     if (newQuantity <= 0) {
       await _removeItem(itemId);
     } else {
-      final success =
-          await apiService.updateCartItemQuantity(itemId, newQuantity);
-      if (success) {
-        _refreshCart();
+      try {
+        final success = await apiService.updateCartItemQuantity(itemId, newQuantity);
+        if (success) {
+          _refreshCart();
+        }
+      } catch (e) {
+        String errorMessage = 'Failed to update quantity';
+        if (e.toString().contains('out_of_stock')) {
+          errorMessage = 'Sản phẩm này đã hết hàng';
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.all(16),
+            duration: Duration(seconds: 2),
+          ),
+        );
       }
     }
   }

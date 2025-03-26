@@ -1,0 +1,170 @@
+extends layout
+
+block content
+  .container-fluid
+    .row
+      // Sidebar
+      .col-md-2.sidebar.p-0
+        .d-flex.flex-column.flex-shrink-0.p-3
+          a.d-flex.align-items-center.mb-3.mb-md-0.me-md-auto.text-decoration-none(href="/admin/dashboard")
+            span.fs-4.text-white Watch Store
+          hr.text-white
+          ul.nav.nav-pills.flex-column.mb-auto
+            li.nav-item
+              a.nav-link(href="/admin/dashboard", class=currentPage === 'dashboard' ? 'active' : '')
+                i.fas.fa-tachometer-alt.me-2
+                | Dashboard
+            li.nav-item
+              a.nav-link(href="/admin/products", class=currentPage === 'products' ? 'active' : '')
+                i.fas.fa-box.me-2
+                | Products
+            li.nav-item
+              a.nav-link(href="/admin/categories", class=currentPage === 'categories' ? 'active' : '')
+                i.fas.fa-tags.me-2
+                | Categories
+            li.nav-item
+              a.nav-link(href="/admin/orders", class=currentPage === 'orders' ? 'active' : '')
+                i.fas.fa-shopping-cart.me-2
+                | Orders
+            li.nav-item
+              a.nav-link(href="/admin/users", class=currentPage === 'users' ? 'active' : '')
+                i.fas.fa-users.me-2
+                | Users
+            li.nav-item
+              a.nav-link(href="/admin/banners", class=currentPage === 'banners' ? 'active' : '')
+                i.fas.fa-images.me-2
+                | Banners
+          hr.text-white
+          .dropdown
+            a.d-flex.align-items-center.text-white.text-decoration-none.dropdown-toggle#dropdownUser1(href="#", data-bs-toggle="dropdown", aria-expanded="false")
+              img.rounded-circle.me-2(src="https://via.placeholder.com/32", alt="Admin", width="32", height="32")
+              strong= user.name
+            ul.dropdown-menu.dropdown-menu-dark.text-small.shadow(aria-labelledby="dropdownUser1")
+              li
+                a.dropdown-item(href="/admin/profile") Profile
+              li
+                hr.dropdown-divider
+              li
+                a.dropdown-item(href="/admin/logout") Sign out
+
+      // Main content
+      .col-md-10.content
+        .d-flex.justify-content-between.align-items-center.mb-4
+          h2 Users
+          button.btn.btn-primary(data-bs-toggle="modal", data-bs-target="#addUserModal")
+            i.fas.fa-plus.me-2
+            | Add User
+        
+        if success
+          .alert.alert-success= success
+        
+        if error
+          .alert.alert-danger= error
+        
+        .card
+          .card-body
+            table.table.table-striped
+              thead
+                tr
+                  th ID
+                  th Name
+                  th Email
+                  th Phone
+                  th Registered
+                  th Actions
+              tbody
+                if users && users.length > 0
+                  each user in users
+                    tr
+                      td= user.id
+                      td
+                        if user.profile_picture
+                          img.rounded-circle.me-2(src=user.profile_picture, alt=user.name, width="30", height="30")
+                        = user.name
+                      td= user.email
+                      td= user.phone || 'N/A'
+                      td= new Date(user.created_at).toLocaleDateString()
+                      td
+                        button.btn.btn-sm.btn-info.me-2(data-bs-toggle="modal", data-bs-target=`#editUserModal${user.id}`)
+                          i.fas.fa-edit
+                        button.btn.btn-sm.btn-danger(data-bs-toggle="modal", data-bs-target=`#deleteUserModal${user.id}`)
+                          i.fas.fa-trash
+                else
+                  tr
+                    td(colspan="6") No users found
+        
+        // Add User Modal
+        #addUserModal.modal.fade(tabindex="-1")
+          .modal-dialog
+            .modal-content
+              .modal-header
+                h5.modal-title Add New User
+                button.btn-close(type="button", data-bs-dismiss="modal", aria-label="Close")
+              .modal-body
+                form(action="/admin/users", method="POST")
+                  .mb-3
+                    label.form-label(for="name") Name
+                    input.form-control#name(type="text", name="name", required)
+                  .mb-3
+                    label.form-label(for="email") Email
+                    input.form-control#email(type="email", name="email", required)
+                  .mb-3
+                    label.form-label(for="password") Password
+                    input.form-control#password(type="password", name="password", required)
+                  .mb-3
+                    label.form-label(for="phone") Phone
+                    input.form-control#phone(type="text", name="phone")
+                  .mb-3
+                    label.form-label(for="address") Address
+                    textarea.form-control#address(name="address", rows="3")
+                  .text-end
+                    button.btn.btn-secondary.me-2(type="button", data-bs-dismiss="modal") Cancel
+                    button.btn.btn-primary(type="submit") Add User
+        
+        // Edit and Delete Modals for each user
+        if users && users.length > 0
+          each user in users
+            // Edit User Modal
+            div(id=`editUserModal${user.id}`).modal.fade(tabindex="-1")
+              .modal-dialog
+                .modal-content
+                  .modal-header
+                    h5.modal-title Edit User
+                    button.btn-close(type="button", data-bs-dismiss="modal", aria-label="Close")
+                  .modal-body
+                    form(action=`/admin/users/${user.id}`, method="POST")
+                      input(type="hidden", name="_method", value="PUT")
+                      .mb-3
+                        label.form-label(for=`name${user.id}`) Name
+                        input.form-control(id=`name${user.id}`, type="text", name="name", value=user.name, required)
+                      .mb-3
+                        label.form-label(for=`email${user.id}`) Email
+                        input.form-control(id=`email${user.id}`, type="email", name="email", value=user.email, required)
+                      .mb-3
+                        label.form-label(for=`password${user.id}`) Password (leave blank to keep current)
+                        input.form-control(id=`password${user.id}`, type="password", name="password")
+                      .mb-3
+                        label.form-label(for=`phone${user.id}`) Phone
+                        input.form-control(id=`phone${user.id}`, type="text", name="phone", value=user.phone)
+                      .mb-3
+                        label.form-label(for=`address${user.id}`) Address
+                        textarea.form-control(id=`address${user.id}`, name="address", rows="3")= user.address
+                      .text-end
+                        button.btn.btn-secondary.me-2(type="button", data-bs-dismiss="modal") Cancel
+                        button.btn.btn-primary(type="submit") Update User
+            
+            // Delete User Modal
+            div(id=`deleteUserModal${user.id}`).modal.fade(tabindex="-1")
+              .modal-dialog
+                .modal-content
+                  .modal-header
+                    h5.modal-title Delete User
+                    button.btn-close(type="button", data-bs-dismiss="modal", aria-label="Close")
+                  .modal-body
+                    p Are you sure you want to delete the user "#{user.name}"?
+                    p.text-danger This action cannot be undone and will delete all associated data.
+                  .modal-footer
+                    button.btn.btn-secondary(type="button", data-bs-dismiss="modal") Cancel
+                    form(action=`/admin/users/${user.id}`, method="POST")
+                      input(type="hidden", name="_method", value="DELETE")
+                      button.btn.btn-danger(type="submit") Delete

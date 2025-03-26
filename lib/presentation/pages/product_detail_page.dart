@@ -8,21 +8,37 @@ class ProductDetailPage extends StatelessWidget {
   ProductDetailPage({required this.product});
 
   final ApiService apiService = ApiService();
-  
-  void addToCart(BuildContext context) async {
-  print('Adding product with ID: ${product.id}');
-  final success = await apiService.addToCart(product.id, 1);
-  
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(success 
-        ? '${product.name} added to cart successfully!' 
-        : 'Failed to add to cart'),
-      backgroundColor: success ? Colors.green : Colors.red,
-      duration: Duration(seconds: 2),
-    ),
-  );
-}
+
+  Future<void> addToCart(BuildContext context) async {
+    try {
+      final success = await apiService.addToCart(product.id, 1);
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Thêm sản phẩm vào giỏ hàng thành công!'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.all(16),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      String errorMessage = 'Failed to add to cart';
+      if (e.toString().contains('out_of_stock')) {
+        errorMessage = 'Sản phẩm này đã hết hàng';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.all(16),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -1,0 +1,102 @@
+extends layout
+
+block content
+  .container-fluid
+    .row
+      // Sidebar
+      .col-md-2.sidebar.p-0
+        .d-flex.flex-column.flex-shrink-0.p-3
+          a.d-flex.align-items-center.mb-3.mb-md-0.me-md-auto.text-decoration-none(href="/admin/dashboard")
+            span.fs-4.text-white Watch Store
+          hr.text-white
+          ul.nav.nav-pills.flex-column.mb-auto
+            li.nav-item
+              a.nav-link(href="/admin/dashboard", class=currentPage === 'dashboard' ? 'active' : '')
+                i.fas.fa-tachometer-alt.me-2
+                | Dashboard
+            li.nav-item
+              a.nav-link(href="/admin/products", class=currentPage === 'products' ? 'active' : '')
+                i.fas.fa-box.me-2
+                | Products
+            li.nav-item
+              a.nav-link(href="/admin/categories", class=currentPage === 'categories' ? 'active' : '')
+                i.fas.fa-tags.me-2
+                | Categories
+            li.nav-item
+              a.nav-link(href="/admin/orders", class=currentPage === 'orders' ? 'active' : '')
+                i.fas.fa-shopping-cart.me-2
+                | Orders
+            li.nav-item
+              a.nav-link(href="/admin/users", class=currentPage === 'users' ? 'active' : '')
+                i.fas.fa-users.me-2
+                | Users
+            li.nav-item
+              a.nav-link(href="/admin/banners", class=currentPage === 'banners' ? 'active' : '')
+                i.fas.fa-images.me-2
+                | Banners
+          hr.text-white
+          .dropdown
+            a.d-flex.align-items-center.text-white.text-decoration-none.dropdown-toggle#dropdownUser1(href="#", data-bs-toggle="dropdown", aria-expanded="false")
+              img.rounded-circle.me-2(src="", alt="Admin", width="32", height="32")
+              strong= user.name
+            ul.dropdown-menu.dropdown-menu-dark.text-small.shadow(aria-labelledby="dropdownUser1")
+              li
+                a.dropdown-item(href="/admin/profile") Profile
+              li
+                hr.dropdown-divider
+              li
+                a.dropdown-item(href="/admin/logout") Sign out
+
+      // Main content
+      .col-md-10.content
+        h2.mb-4 Dashboard
+        
+        .row
+          .col-md-4.mb-4
+            .card.bg-primary.text-white
+              .card-body
+                h5.card-title Products
+                h2.card-text= stats.products
+                p.card-text Total products in store
+          .col-md-4.mb-4
+            .card.bg-success.text-white
+              .card-body
+                h5.card-title Orders
+                h2.card-text= stats.orders
+                p.card-text Total orders placed
+          .col-md-4.mb-4
+            .card.bg-info.text-white
+              .card-body
+                h5.card-title Users
+                h2.card-text= stats.users
+                p.card-text Registered users
+        
+        .row.mt-4
+          .col-md-12
+            .card
+              .card-header
+                h5 Recent Orders
+              .card-body
+                if recentOrders && recentOrders.length > 0
+                  table.table.table-striped
+                    thead
+                      tr
+                        th Order ID
+                        th Customer
+                        th Date
+                        th Amount
+                        th Status
+                        th Action
+                    tbody
+                      each order in recentOrders
+                        tr
+                          td= order.id
+                          td= order.user_name
+                          td= new Date(order.created_at).toLocaleDateString()
+                          td $#{parseFloat(order.total_amount).toFixed(2)}
+                          td
+                            span(class=`badge bg-${order.status === 'completed' ? 'success' : order.status === 'processing' ? 'warning' : 'secondary'}`)= order.status
+                          td
+                            a.btn.btn-sm.btn-primary(href=`/admin/orders/${order.id}`) View
+                else
+                  p No recent orders found.

@@ -1,0 +1,151 @@
+extends layout
+
+block content
+  .container-fluid
+    .row
+      // Sidebar
+      .col-md-2.sidebar.p-0
+        .d-flex.flex-column.flex-shrink-0.p-3
+          a.d-flex.align-items-center.mb-3.mb-md-0.me-md-auto.text-decoration-none(href="/admin/dashboard")
+            span.fs-4.text-white Watch Store
+          hr.text-white
+          ul.nav.nav-pills.flex-column.mb-auto
+            li.nav-item
+              a.nav-link(href="/admin/dashboard", class=currentPage === 'dashboard' ? 'active' : '')
+                i.fas.fa-tachometer-alt.me-2
+                | Dashboard
+            li.nav-item
+              a.nav-link(href="/admin/products", class=currentPage === 'products' ? 'active' : '')
+                i.fas.fa-box.me-2
+                | Products
+            li.nav-item
+              a.nav-link(href="/admin/categories", class=currentPage === 'categories' ? 'active' : '')
+                i.fas.fa-tags.me-2
+                | Categories
+            li.nav-item
+              a.nav-link(href="/admin/orders", class=currentPage === 'orders' ? 'active' : '')
+                i.fas.fa-shopping-cart.me-2
+                | Orders
+            li.nav-item
+              a.nav-link(href="/admin/users", class=currentPage === 'users' ? 'active' : '')
+                i.fas.fa-users.me-2
+                | Users
+            li.nav-item
+              a.nav-link(href="/admin/banners", class=currentPage === 'banners' ? 'active' : '')
+                i.fas.fa-images.me-2
+                | Banners
+          hr.text-white
+          .dropdown
+            a.d-flex.align-items-center.text-white.text-decoration-none.dropdown-toggle#dropdownUser1(href="#", data-bs-toggle="dropdown", aria-expanded="false")
+              img.rounded-circle.me-2(src="https://via.placeholder.com/32", alt="Admin", width="32", height="32")
+              strong= user.name
+            ul.dropdown-menu.dropdown-menu-dark.text-small.shadow(aria-labelledby="dropdownUser1")
+              li
+                a.dropdown-item(href="/admin/profile") Profile
+              li
+                hr.dropdown-divider
+              li
+                a.dropdown-item(href="/admin/logout") Sign out
+
+      // Main content
+      .col-md-10.content
+        .d-flex.justify-content-between.align-items-center.mb-4
+          h2 Banners
+          button.btn.btn-primary(data-bs-toggle="modal", data-bs-target="#addBannerModal")
+            i.fas.fa-plus.me-2
+            | Add Banner
+        
+        if success
+          .alert.alert-success= success
+        
+        if error
+          .alert.alert-danger= error
+        
+        .row
+          if banners && banners.length > 0
+            each banner in banners
+              .col-md-4.mb-4
+                .card
+                  img.card-img-top(src=banner.imageUrl, alt=banner.title)
+                  .card-body
+                    h5.card-title= banner.title
+                    p.card-text
+                      a(href=banner.link, target="_blank")= banner.link
+                    .d-flex.justify-content-between.mt-3
+                      button.btn.btn-sm.btn-info(data-bs-toggle="modal", data-bs-target=`#editBannerModal${banner.id}`)
+                        i.fas.fa-edit.me-1
+                        | Edit
+                      button.btn.btn-sm.btn-danger(data-bs-toggle="modal", data-bs-target=`#deleteBannerModal${banner.id}`)
+                        i.fas.fa-trash.me-1
+                        | Delete
+          else
+            .col-12
+              .alert.alert-info No banners found
+        
+        // Add Banner Modal
+        #addBannerModal.modal.fade(tabindex="-1")
+          .modal-dialog
+            .modal-content
+              .modal-header
+                h5.modal-title Add New Banner
+                button.btn-close(type="button", data-bs-dismiss="modal", aria-label="Close")
+              .modal-body
+                form(action="/admin/banners", method="POST", enctype="multipart/form-data")
+                  .mb-3
+                    label.form-label(for="title") Title
+                    input.form-control#title(type="text", name="title", required)
+                  .mb-3
+                    label.form-label(for="link") Link URL
+                    input.form-control#link(type="url", name="link", required)
+                  .mb-3
+                    label.form-label(for="image") Banner Image
+                    input.form-control#image(type="file", name="image", required)
+                  .text-end
+                    button.btn.btn-secondary.me-2(type="button", data-bs-dismiss="modal") Cancel
+                    button.btn.btn-primary(type="submit") Add Banner
+        
+        // Edit and Delete Modals for each banner
+        if banners && banners.length > 0
+          each banner in banners
+            // Edit Banner Modal
+            div(id=`editBannerModal${banner.id}`).modal.fade(tabindex="-1")
+              .modal-dialog
+                .modal-content
+                  .modal-header
+                    h5.modal-title Edit Banner
+                    button.btn-close(type="button", data-bs-dismiss="modal", aria-label="Close")
+                  .modal-body
+                    form(action=`/admin/banners/${banner.id}`, method="POST", enctype="multipart/form-data")
+                      input(type="hidden", name="_method", value="PUT")
+                      .mb-3
+                        label.form-label(for=`title${banner.id}`) Title
+                        input.form-control(id=`title${banner.id}`, type="text", name="title", value=banner.title, required)
+                      .mb-3
+                        label.form-label(for=`link${banner.id}`) Link URL
+                        input.form-control(id=`link${banner.id}`, type="url", name="link", value=banner.link, required)
+                      .mb-3
+                        label.form-label(for=`image${banner.id}`) Banner Image (leave empty to keep current)
+                        input.form-control(id=`image${banner.id}`, type="file", name="image")
+                        .mt-2
+                          img.img-thumbnail(src=banner.imageUrl, alt=banner.title, style="max-height: 150px;")
+                      .text-end
+                        button.btn.btn-secondary.me-2(type="button", data-bs-dismiss="modal") Cancel
+                        button.btn.btn-primary(type="submit") Update Banner
+            
+            // Delete Banner Modal
+            div(id=`deleteBannerModal${banner.id}`).modal.fade(tabindex="-1")
+              .modal-dialog
+                .modal-content
+                  .modal-header
+                    h5.modal-title Delete Banner
+                    button.btn-close(type="button", data-bs-dismiss="modal", aria-label="Close")
+                  .modal-body
+                    p Are you sure you want to delete this banner?
+                    .text-center.mb-3
+                      img.img-thumbnail(src=banner.imageUrl, alt=banner.title, style="max-height: 200px;")
+                    p.text-danger This action cannot be undone.
+                  .modal-footer
+                    button.btn.btn-secondary(type="button", data-bs-dismiss="modal") Cancel
+                    form(action=`/admin/banners/${banner.id}`, method="POST")
+                      input(type="hidden", name="_method", value="DELETE")
+                      button.btn.btn-danger(type="submit") Delete

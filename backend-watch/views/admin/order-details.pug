@@ -1,0 +1,165 @@
+extends layout
+
+block content
+  .container-fluid
+    .row
+      // Sidebar
+      .col-md-2.sidebar.p-0
+        .d-flex.flex-column.flex-shrink-0.p-3
+          a.d-flex.align-items-center.mb-3.mb-md-0.me-md-auto.text-decoration-none(href="/admin/dashboard")
+            span.fs-4.text-white Watch Store
+          hr.text-white
+          ul.nav.nav-pills.flex-column.mb-auto
+            li.nav-item
+              a.nav-link(href="/admin/dashboard", class=currentPage === 'dashboard' ? 'active' : '')
+                i.fas.fa-tachometer-alt.me-2
+                | Dashboard
+            li.nav-item
+              a.nav-link(href="/admin/products", class=currentPage === 'products' ? 'active' : '')
+                i.fas.fa-box.me-2
+                | Products
+            li.nav-item
+              a.nav-link(href="/admin/categories", class=currentPage === 'categories' ? 'active' : '')
+                i.fas.fa-tags.me-2
+                | Categories
+            li.nav-item
+              a.nav-link(href="/admin/orders", class=currentPage === 'orders' ? 'active' : '')
+                i.fas.fa-shopping-cart.me-2
+                | Orders
+            li.nav-item
+              a.nav-link(href="/admin/users", class=currentPage === 'users' ? 'active' : '')
+                i.fas.fa-users.me-2
+                | Users
+            li.nav-item
+              a.nav-link(href="/admin/banners", class=currentPage === 'banners' ? 'active' : '')
+                i.fas.fa-images.me-2
+                | Banners
+          hr.text-white
+          .dropdown
+            a.d-flex.align-items-center.text-white.text-decoration-none.dropdown-toggle#dropdownUser1(href="#", data-bs-toggle="dropdown", aria-expanded="false")
+              img.rounded-circle.me-2(src="https://via.placeholder.com/32", alt="Admin", width="32", height="32")
+              strong= user.name
+            ul.dropdown-menu.dropdown-menu-dark.text-small.shadow(aria-labelledby="dropdownUser1")
+              li
+                a.dropdown-item(href="/admin/profile") Profile
+              li
+                hr.dropdown-divider
+              li
+                a.dropdown-item(href="/admin/logout") Sign out
+
+      // Main content
+      .col-md-10.content
+        .d-flex.justify-content-between.align-items-center.mb-4
+          h2 Order Details ##{order.id}
+          .d-flex
+            a.btn.btn-secondary.me-2(href="/admin/orders")
+              i.fas.fa-arrow-left.me-2
+              | Back to Orders
+            button.btn.btn-info(data-bs-toggle="modal", data-bs-target="#updateStatusModal")
+              i.fas.fa-edit.me-2
+              | Update Status
+        
+        if success
+          .alert.alert-success= success
+        
+        if error
+          .alert.alert-danger= error
+        
+        .row
+          .col-md-6
+            .card.mb-4
+              .card-header
+                h5 Order Information
+              .card-body
+                table.table
+                  tbody
+                    tr
+                      th Order ID
+                      td= order.id
+                    tr
+                      th Date
+                      td= new Date(order.created_at).toLocaleString()
+                    tr
+                      th Status
+                      td
+                        span(class=`badge bg-${order.status === 'completed' ? 'success' : order.status === 'processing' ? 'warning' : 'secondary'}`)= order.status
+                    tr
+                      th Total Amount
+                      td $#{parseFloat(order.total_amount).toFixed(2)}
+          
+          .col-md-6
+            .card.mb-4
+              .card-header
+                h5 Customer Information
+              .card-body
+                table.table
+                  tbody
+                    tr
+                      th Name
+                      td= order.user_name
+                    tr
+                      th Email
+                      td= order.email
+                    tr
+                      th Phone
+                      td= order.phone || 'N/A'
+                    tr
+                      th Shipping Address
+                      td
+                        if order.shipping_address
+                          - const address = typeof order.shipping_address === 'string' ? JSON.parse(order.shipping_address) : order.shipping_address
+                          div= address.street || address.address
+                          div= address.city + (address.state ? ', ' + address.state : '')
+                          div= address.zip || address.postalCode
+                          div= address.country
+                        else
+                          | N/A
+        
+        .card.mb-4
+          .card-header
+            h5 Order Items
+          .card-body
+            table.table.table-striped
+              thead
+                tr
+                  th Product
+                  th Price
+                  th Quantity
+                  th Subtotal
+              tbody
+                if items && items.length > 0
+                  each item in items
+                    tr
+                      td= item.product_name
+                      td $#{parseFloat(item.price).toFixed(2)}
+                      td= item.quantity
+                      td $#{parseFloat(item.price * item.quantity).toFixed(2)}
+                else
+                  tr
+                    td(colspan="4") No items found
+              tfoot
+                tr
+                  th(colspan="3") Total
+                  th $#{parseFloat(order.total_amount).toFixed(2)}
+        
+        // Update Status Modal
+        #updateStatusModal.modal.fade(tabindex="-1")
+          .modal-dialog
+            .modal-content
+              .modal-header
+                h5.modal-title Update Order Status
+                button.btn-close(type="button", data-bs-dismiss="modal", aria-label="Close")
+              .modal-body
+                form(action=`/admin/orders/${order.id}/status`, method="POST")
+                  .mb-3
+                    label.form-label(for="status") Status
+                    select.form-control#status(name="status")
+                      option(value="pending", selected=order.status === 'pending') Pending
+                      option(value="processing", selected=order.status === 'processing') Processing
+                      option(value="shipped", selected=order.status === 'shipped') Shipped
+                      option(value="delivered", selected=order.status === 'delivered') Delivered
+                      option(value="completed", selected=order.status === 'completed') Completed
+                      option(value="cancelled", selected=order.status === 'cancelled') Cancelled
+                  .text-end
+                    button.btn.btn-secondary.me-2(type="button", data-bs-dismiss="modal") Cancel
+                    button.btn.btn-primary(type="submit") Update Status

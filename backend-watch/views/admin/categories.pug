@@ -1,0 +1,145 @@
+extends layout
+
+block content
+  .container-fluid
+    .row
+      // Sidebar
+      .col-md-2.sidebar.p-0
+        .d-flex.flex-column.flex-shrink-0.p-3
+          a.d-flex.align-items-center.mb-3.mb-md-0.me-md-auto.text-decoration-none(href="/admin/dashboard")
+            span.fs-4.text-white Watch Store
+          hr.text-white
+          ul.nav.nav-pills.flex-column.mb-auto
+            li.nav-item
+              a.nav-link(href="/admin/dashboard", class=currentPage === 'dashboard' ? 'active' : '')
+                i.fas.fa-tachometer-alt.me-2
+                | Dashboard
+            li.nav-item
+              a.nav-link(href="/admin/products", class=currentPage === 'products' ? 'active' : '')
+                i.fas.fa-box.me-2
+                | Products
+            li.nav-item
+              a.nav-link(href="/admin/categories", class=currentPage === 'categories' ? 'active' : '')
+                i.fas.fa-tags.me-2
+                | Categories
+            li.nav-item
+              a.nav-link(href="/admin/orders", class=currentPage === 'orders' ? 'active' : '')
+                i.fas.fa-shopping-cart.me-2
+                | Orders
+            li.nav-item
+              a.nav-link(href="/admin/users", class=currentPage === 'users' ? 'active' : '')
+                i.fas.fa-users.me-2
+                | Users
+            li.nav-item
+              a.nav-link(href="/admin/banners", class=currentPage === 'banners' ? 'active' : '')
+                i.fas.fa-images.me-2
+                | Banners
+          hr.text-white
+          .dropdown
+            a.d-flex.align-items-center.text-white.text-decoration-none.dropdown-toggle#dropdownUser1(href="#", data-bs-toggle="dropdown", aria-expanded="false")
+              img.rounded-circle.me-2(src="https://via.placeholder.com/32", alt="Admin", width="32", height="32")
+              strong= user.name
+            ul.dropdown-menu.dropdown-menu-dark.text-small.shadow(aria-labelledby="dropdownUser1")
+              li
+                a.dropdown-item(href="/admin/profile") Profile
+              li
+                hr.dropdown-divider
+              li
+                a.dropdown-item(href="/admin/logout") Sign out
+
+      // Main content
+      .col-md-10.content
+        .d-flex.justify-content-between.align-items-center.mb-4
+          h2 Categories
+          button.btn.btn-primary(data-bs-toggle="modal", data-bs-target="#addCategoryModal")
+            i.fas.fa-plus.me-2
+            | Add Category
+        
+        if success
+          .alert.alert-success= success
+        
+        if error
+          .alert.alert-danger= error
+        
+        .card
+          .card-body
+            table.table.table-striped
+              thead
+                tr
+                  th ID
+                  th Name
+                  th Description
+                  th Actions
+              tbody
+                if categories && categories.length > 0
+                  each category in categories
+                    tr
+                      td= category.id
+                      td= category.name
+                      td= category.description || 'No description'
+                      td
+                        button.btn.btn-sm.btn-info.me-2(data-bs-toggle="modal", data-bs-target=`#editCategoryModal${category.id}`)
+                          i.fas.fa-edit
+                        button.btn.btn-sm.btn-danger(data-bs-toggle="modal", data-bs-target=`#deleteCategoryModal${category.id}`)
+                          i.fas.fa-trash
+                else
+                  tr
+                    td(colspan="4") No categories found
+        
+        // Add Category Modal
+        #addCategoryModal.modal.fade(tabindex="-1")
+          .modal-dialog
+            .modal-content
+              .modal-header
+                h5.modal-title Add New Category
+                button.btn-close(type="button", data-bs-dismiss="modal", aria-label="Close")
+              .modal-body
+                form(action="/admin/categories", method="POST")
+                  .mb-3
+                    label.form-label(for="name") Category Name
+                    input.form-control#name(type="text", name="name", required)
+                  .mb-3
+                    label.form-label(for="description") Description
+                    textarea.form-control#description(name="description", rows="3")
+                  .text-end
+                    button.btn.btn-secondary.me-2(type="button", data-bs-dismiss="modal") Cancel
+                    button.btn.btn-primary(type="submit") Add Category
+        
+        // Edit and Delete Modals for each category
+        if categories && categories.length > 0
+          each category in categories
+            // Edit Category Modal
+            div(id=`editCategoryModal${category.id}`).modal.fade(tabindex="-1")
+              .modal-dialog
+                .modal-content
+                  .modal-header
+                    h5.modal-title Edit Category
+                    button.btn-close(type="button", data-bs-dismiss="modal", aria-label="Close")
+                  .modal-body
+                    form(action=`/admin/categories/${category.id}`, method="POST")
+                      input(type="hidden", name="_method", value="PUT")
+                      .mb-3
+                        label.form-label(for=`name${category.id}`) Category Name
+                        input.form-control(id=`name${category.id}`, type="text", name="name", value=category.name, required)
+                      .mb-3
+                        label.form-label(for=`description${category.id}`) Description
+                        textarea.form-control(id=`description${category.id}`, name="description", rows="3")= category.description
+                      .text-end
+                        button.btn.btn-secondary.me-2(type="button", data-bs-dismiss="modal") Cancel
+                        button.btn.btn-primary(type="submit") Update Category
+            
+            // Delete Category Modal
+            div(id=`deleteCategoryModal${category.id}`).modal.fade(tabindex="-1")
+              .modal-dialog
+                .modal-content
+                  .modal-header
+                    h5.modal-title Delete Category
+                    button.btn-close(type="button", data-bs-dismiss="modal", aria-label="Close")
+                  .modal-body
+                    p Are you sure you want to delete the category "#{category.name}"?
+                    p.text-danger This action cannot be undone and may affect products assigned to this category.
+                  .modal-footer
+                    button.btn.btn-secondary(type="button", data-bs-dismiss="modal") Cancel
+                    form(action=`/admin/categories/${category.id}`, method="POST")
+                      input(type="hidden", name="_method", value="DELETE")
+                      button.btn.btn-danger(type="submit") Delete

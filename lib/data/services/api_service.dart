@@ -6,7 +6,7 @@ import 'package:watch_store/data/models/product.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // Import for SharedPreferences
 
 class ApiService {
-  final String baseUrl =
+  static const String baseUrl =
       'http://192.168.100.213:3000/api'; // Update with your server URL
 
   Future<bool> register(String name, String email, String password,
@@ -58,26 +58,44 @@ class ApiService {
   Future<bool> addToCart(int productId, int quantity) async {
     try {
       String? token = await _retrieveToken();
+      if (token == null) return false;
 
+      // First check product stock
+      final productResponse = await http.get(
+        Uri.parse('$baseUrl/products/$productId'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (productResponse.statusCode != 200) {
+        print('Failed to get product details');
+        return false;
+      }
+
+      final product = json.decode(productResponse.body);
+      final availableStock = product['stock'] ?? 0;
+
+      if (quantity > availableStock) {
+        throw Exception('out_of_stock');
+      }
+
+      // Add to cart
       final response = await http.post(
         Uri.parse('$baseUrl/cart'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({'product_id': productId, 'quantity': quantity}),
+        body: jsonEncode({
+          'product_id': productId,
+          'quantity': quantity,
+        }),
       );
 
-      // Consider both 200 and 201 as success
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        print('Successfully added to cart: ${response.body}');
-        return true;
-      } else {
-        print('Failed to add to cart: ${response.statusCode}');
-        print('Response body: ${response.body}');
-        return false;
-      }
+      return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
+      if (e.toString().contains('out_of_stock')) {
+        throw Exception('out_of_stock');
+      }
       print('Error during add to cart: $e');
       return false;
     }
@@ -105,24 +123,155 @@ class ApiService {
       String? token = await _retrieveToken();
       if (token == null) return false;
 
-      final response = await http.put(
+      // First check the cart item and product stock
+      final cartResponse = await http.get(
+        Uri.parse('$baseUrl/cart/$itemId'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (cartResponse.statusCode != 200) {
+        print('Failed to get cart item details: ${cartResponse.statusCode}');
+        print('Response body: ${cartResponse.body}');
+        return false;
+      }
+
+      final cartItem = json.decode(cartResponse.body);
+      final productId = cartItem['product_id'];
+
+      // Get product stock information
+      final productResponse = await http.get(
+        Uri.parse('$baseUrl/products/$productId'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (productResponse.statusCode != 200) {
+        print('Failed to get product details');
+        return false;
+      }
+
+      final product = json.decode(productResponse.body);
+      final availableStock = product['stock'] ?? 0;
+
+      // Check if requested quantity is available
+      if (quantity > availableStock) {
+        print('Requested quantity exceeds available stock');
+        return false;
+      }
+
+      // Update cart quantity
+      final cartUpdateResponse = await http.put(
         Uri.parse('$baseUrl/cart'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({'cart_id': itemId, 'quantity': quantity}),
+        body: jsonEncode(
+            {'cart_id': itemId, 'quantity': quantity, 'product_id': productId}),
       );
 
-      print('Update request sent with body: ${jsonEncode({
-            'cart_id': itemId,
-            'quantity': quantity
-          })}');
+      print('Cart update response: ${cartUpdateResponse.statusCode}');
+      print('Cart update body: ${cartUpdateResponse.body}');
 
-      return response.statusCode == 200;
+      return cartUpdateResponse.statusCode == 200;
     } catch (e) {
       print('Error updating cart item: $e');
       return false;
+    }
+  }
+
+  Future<Map<String, dynamic>> createOrder(
+      Map<String, dynamic> orderData) async {
+    try {
+      String? token = await _retrieveToken();
+      if (token == null) {
+        return {'success': false, 'error': 'No authentication token found'};
+      }
+
+      final cartItems = await fetchCartItems();
+      if (cartItems.isEmpty) {
+        return {'success': false, 'error': 'Cart is empty'};
+      }
+
+      // Calculate total here on client side as well
+      double totalAmount = cartItems.fold(0, (sum, item) {
+        return sum +
+            (double.parse(item['price'].toString()) *
+                int.parse(item['quantity'].toString()));
+      });
+
+      // Prepare order payload with total and all necessary item details
+      final payload = {
+        'shipping_address': orderData['shipping_address'],
+        'total_amount': totalAmount,
+        'items': cartItems
+            .map((item) => {
+                  'product_id': int.parse(item['product_id'].toString()),
+                  'quantity': int.parse(item['quantity'].toString()),
+                  'price': double.parse(item['price'].toString()),
+                })
+            .toList(),
+      };
+
+      print('Creating order with payload: ${json.encode(payload)}');
+
+      final orderResponse = await http.post(
+        Uri.parse('$baseUrl/orders'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(payload),
+      );
+
+      print('Order creation response: ${orderResponse.statusCode}');
+      print('Response body: ${orderResponse.body}');
+
+      if (orderResponse.statusCode == 201) {
+        await clearCart();
+        return {'success': true};
+      }
+
+      final errorBody = json.decode(orderResponse.body);
+      return {
+        'success': false,
+        'error': errorBody['error'] ?? 'Failed to create order'
+      };
+    } catch (e) {
+      print('Error creating order: $e');
+      return {'success': false, 'error': 'An unexpected error occurred'};
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> fetchOrderHistory() async {
+    try {
+      String? token = await _retrieveToken();
+      if (token == null) return [];
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/orders'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> orders = json.decode(response.body);
+        // Format the shipping_address if it's stored as a JSON string
+        return orders.map((order) {
+          var formatted = Map<String, dynamic>.from(order);
+          if (order['shipping_address'] is String) {
+            try {
+              formatted['shipping_address'] =
+                  json.decode(order['shipping_address']);
+            } catch (e) {
+              print('Error parsing shipping address: $e');
+            }
+          }
+          return formatted;
+        }).toList();
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching order history: $e');
+      return [];
     }
   }
 
@@ -301,4 +450,6 @@ class ApiService {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('jwt_token');
   }
+
+  
 }
